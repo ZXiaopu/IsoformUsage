@@ -1,0 +1,16 @@
+00.runCaret.R 
+   Carry on permutation test
+
+01.comparePerms.R 
+   Calculate false discovery rate
+
+02.varImp.R
+   Have an overview of which regions play important parts in classifying two populations
+   
+03.GEUVADIS.R 
+   Identify genes showing differential isoform usage based on GEUVADIS method: Usage = RPKM(each isoform)/RPKM(gene)
+   
+04. FUMA_heatmap.R
+   Visualize FUMA results across all models
+   FUMA: https://fuma.ctglab.nl/
+   
