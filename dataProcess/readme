@@ -1,1 +1,12 @@
 RNA-seq data were from https://www.ebi.ac.uk/arrayexpress/experiments/E-GEUV-1/files/processed/
+
+Step1: Merging all exons from each isoform of the same gene (MergedExon)
+
+Step2: Generating mapping model
+       Mapping model is composed of MergedExon, Intron(regions between MergedExon), Up/downstream regions
+       
+Step3: Generating window model
+       Dividing each region into several windows
+
+Step4: Mapping RNA-seq data to each region
+       Each gene is a seperate file
