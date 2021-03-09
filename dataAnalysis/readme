@@ -1,16 +1,10 @@
-00.runCaret.R 
-   Carry on permutation test
+00.runCaret.R: Fit the ML models to the input data
 
-01.comparePerms.R 
-   Calculate false discovery rate
+01.comparePerms.R: Read the permutation results and calculate false discovery rates
 
-02.varImp.R
-   Have an overview of which regions play important parts in classifying two populations
+02.varImp.R: Perform the variable importance analysis
    
-03.GEUVADIS.R 
-   Identify genes showing differential isoform usage based on GEUVADIS method: Usage = RPKM(each isoform)/RPKM(gene)
-   
-04. FUMA_heatmap.R
-   Visualize FUMA results across all models
-   FUMA: https://fuma.ctglab.nl/
+03.GEUVADIS.R: Identify genes showing differential isoform usage based on the GEUVADIS method: Usage = RPKM(each isoform)/RPKM(gene)
+  
+04. FUMA_heatmap.R: Visualize FUMA results across the models. FUMA: https://fuma.ctglab.nl/
    
