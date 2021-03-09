@@ -4,5 +4,6 @@ The code in this repository is that used in the manuscript "Using machine learni
 
 The code is broken down into two folders:
 
-•	dataProcess: Preparation of the data for the machine learning models
-•	dataAnalysis: Model fitting and downstream analyses
+dataProcess: Preparation of the data for the machine learning models
+
+dataAnalysis: Model fitting and downstream analyses
