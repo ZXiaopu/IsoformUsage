@@ -1,0 +1,66 @@
+##### edgeR
+library(tidyverse)
+library(edgeR)
+setwd("./05.DEXSeq/output")
+sample <- read.csv("./05.edgeR/sampleTable", row.names = 1,head = TRUE, sep = "\t")
+Group <- factor(sample$condition)
+design <- model.matrix(~Group)
+
+files <- list.files(".",pattern=".txt$")
+myfiles <- lapply(files, function(x) read_delim(x, col_names = c("ID",gsub(".output.txt","",x)),delim="\t"))
+myfiles1 <- bind_cols(myfiles)
+Counts <- myfiles1[,colnames(myfiles1) %in% rownames(sample)]
+
+exon <- gsub(":",".", myfiles[[1]]$ID)
+genename <- substr(exon,1,15)
+genes <- data.frame(GeneID=genename, Gene.Exon=exon)
+
+dge <- DGEList(counts=Counts, genes=genes)
+dge1 <- dge[filterByExpr(dge, design),]
+dgefit <- glmFit(dge1, design, dispersion=0.05)
+
+ds <- diffSpliceDGE(dgefit, geneid="GeneID")
+exonPvalue <- cbind(ds$genes, ds$exon.p.value)
+genePvalue <- cbind(ds$gene.genes, ds$gene.p.value, ds$gene.Simes.p.value)
+
+## check overlap between our method and edgeR
+setwd("~/Project/1. Isoform/02.modelTraining/06.edgeR")
+exonLevel <- read_delim("./edgeR.exonPvalue", delim = "\t", col_names = T)
+geneLevel <- read_delim("./edgeR.genePvalue", delim = "\t", col_names = T)
+
+elasticGenes <- read_delim("../02.metrics/elastic.sigGene", delim = "\t", col_names = F)
+xgbGenes <- read_delim("../02.metrics/xgbTree.sigGene", delim = "\t", col_names = F)
+detectedGenes <- bind_rows(elasticGenes, xgbGenes)
+GEUVADISGenes <- read_delim("../02.metrics/GEUVADIS.sigGene", delim = "\t", col_names = F)
+
+genesPvalue <- geneLevel %>% filter(`ds$gene.p.value`<=0.05) 
+genesSimes <- geneLevel %>% filter(`ds$gene.Simes.p.value` <=0.05)
+
+genesPvalue %>% filter(GeneID %in% detectedGenes$X1) %>% tally() #5826
+genesPvalue %>% filter(GeneID %in% elasticGenes$X1) %>% tally() #3857
+genesPvalue %>% filter(GeneID %in% xgbGenes$X1) %>% tally() #4611
+genesPvalue %>% filter(GeneID %in% GEUVADISGenes$X1) %>% tally() #3202
+
+genesSimes %>% filter(GeneID %in% detectedGenes$X1) %>% tally() #5589
+genesSimes %>% filter(GeneID %in% elasticGenes$X1) %>% tally() #3726
+genesSimes %>% filter(GeneID %in% xgbGenes$X1) %>% tally() #4439
+genesSimes %>% filter(GeneID %in% GEUVADISGenes$X1) %>% tally() #3108
+
+### genes detected by edgeR but not by us
+geneGroup <- genesPvalue %>% filter((GeneID %in% detectedGenes$X1) == F)
+
+
+### genes detected by us but not by edgeR
+# data2 contains all windows and variable importance
+load("~/Desktop/varImpRegion.RData")
+elasticGroup <- elasticGenes %>% filter((X1 %in% genesPvalue$GeneID) == F) %>%
+  filter((X1 %in% genesSimes$GeneID) == F)  ## 2626 genes, only 846 of them with highest importance in exon region
+data3 <- data2 %>% filter(ID %in% elasticGroup$X1) %>% filter(Imp_elastic==100) %>% 
+  separate(win, "_", into=c("region","window")) 
+data3[startsWith(data3$region, "intron"),] %>% tally()
+
+xgbGroup <- xgbGenes %>% filter((X1 %in% genesPvalue$GeneID) == F) %>% 
+  filter((X1 %in% genesSimes$GeneID) == F)   ## 4342 genes, only 1406 of them with highest importance in exon region
+data4 <- data2 %>% filter(ID %in% xgbGroup$X1) %>% filter(Imp_xgb==100) %>% 
+  separate(win, "_", into=c("region","window")) 
+data4[startsWith(data4$region, "exon"),] %>% tally()
