@@ -6,5 +6,6 @@
    
 03.GEUVADIS.R: Identify genes showing differential isoform usage based on the GEUVADIS method: Usage = RPKM(each isoform)/RPKM(gene)
   
-04. FUMA_heatmap.R: Visualize FUMA results across the models. FUMA: https://fuma.ctglab.nl/
+04.FUMAres.R: Visualize FUMA results across the models. FUMA: https://fuma.ctglab.nl/
    
+05.edgeR.R: Run edgeR to compare with our method
