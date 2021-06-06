@@ -131,30 +131,93 @@ for(i in as.numeric(unique(datR$model)))
 }
 # write.table(datR,"~/correctP.permutation",row.names = F)
 
-
-#count number of significant genes by model type
-#note this doesnt mean were necessarily siginficant in original accuracy p value
-
+################################################################################################
+##expression level
+                                                   
 library(tidyverse)
-datR <- read.csv("~/Desktop/metrics/correctP.permutation", header=T, sep=" ", stringsAsFactors=F)
-a <- datR %>% filter(corrected_p < 0.05) %>% arrange(corrected_p) %>% 
-  select(gene, model, AccuracyPValue, perm_count, corrected_p) %>% group_by(model)
-write.table(a, "~/Desktop/metrics/FDR.05.fourModels",row.names=F, quote=F)
+library(reshape2)
+library(ggpubr)
 
-#get counts of genes significant across model types
-datR %>% filter(corrected_p < 0.05) %>% arrange(corrected_p) %>%
-  select(gene, model, AccuracyPValue, perm_count, corrected_p) %>% group_by(gene) %>% tally() %>%
-  group_by(n) %>% tally()
+setwd("~/Dropbox/IsoformUsage/SigGenes/")
 
-# get counts of model types
-datR %>% filter(corrected_p < 0.05) %>% arrange(corrected_p) %>%
-  select(gene, model, AccuracyPValue, perm_count, corrected_p) %>% group_by(model) %>% tally() 
+load("metrics0.RData")
+datR<-data2
+load("metrics1.RData")
+dat1<-data2
+load("metrics2.RData")
+dat2<-data2
+load("metrics3.RData")
+dat3<-data2
+load("metrics4.RData")
+dat4<-data2
+load("metrics5.RData")
+dat5<-data2
+load("metrics6.RData")
+dat6<-data2
+load("metrics7.RData")
+dat7<-data2
+load("metrics8.RData")
+dat8<-data2
+load("metrics9.RData")
+dat9<-data2
+load("metrics10.RData")
+dat10<-data2
+
+data3<-rbind(datR,dat1,dat2,dat3,dat4,dat5,dat6,dat7,dat8,dat9,dat10)
+breaks<-seq(0,1,0.1)
+data3$pvalue_bin<-cut(data3$AccuracyPValue, breaks=breaks, include.lowest=TRUE, right=FALSE)
+data3$pvalue_bin<-str_replace_all(data3$pvalue_bin, "[\\[\\)\\]]", "")
+data3$pvalue_bin<-str_replace_all(data3$pvalue_bin, "\\,", "-")
 
 
-datR %>% filter(corrected_p < 0.05) %>% arrange(corrected_p) %>%
- select(gene, model, AccuracyPValue, perm_count, corrected_p) %>% group_by(gene) %>% tally() %>%
- filter(n > 3) %>% separate(gene, c("chr", "gene", "strand")) %>% print(n=300)
+expression<-read_tsv("allRPKM")
+data4 <- merge(data3, expression, by.x="gene")
+#get the approximate values that splits it into thirds
+quantile(data4$RPKM_EUR, c(.3333, .666))
 
-#datR %>% filter(corrected_p < 0.05) %>% arrange(corrected_p) %>% 
-#  select(gene, model, AccuracyPValue, perm_count, corrected_p) %>% arrange(corrected_p, AccuracyPValue) %>%
-#  print(n=100)
+data4$expression_level[data4$RPKM_EUR <= 0.005] <- "low"
+data4$expression_level[data4$RPKM_EUR >= 1] <- "high"
+data4$expression_level[data4$RPKM_EUR > 0.005 & data4$RPKM_EUR < 1] <- "medium"
+
+
+pvalue_counts<- data4 %>% filter(model %in% c(2,4)) %>% 
+  group_by(pvalue_bin,model, perm, expression_level) %>% tally()
+pvalue_counts<-pvalue_counts %>% spread(perm, n)
+pvalue_counts<-pvalue_counts %>% mutate_if(is.numeric, funs(replace_na(., 0)))
+
+pvalue_counts$ratio1<-(pvalue_counts$metrics0+1)/(pvalue_counts$`metrics1`+1)
+pvalue_counts$ratio2<-(pvalue_counts$metrics0+1)/(pvalue_counts$`metrics2`+1)
+pvalue_counts$ratio3<-(pvalue_counts$metrics0+1)/(pvalue_counts$`metrics3`+1)
+pvalue_counts$ratio4<-(pvalue_counts$metrics0+1)/(pvalue_counts$`metrics4`+1)
+pvalue_counts$ratio5<-(pvalue_counts$metrics0+1)/(pvalue_counts$`metrics5`+1)
+pvalue_counts$ratio6<-(pvalue_counts$metrics0+1)/(pvalue_counts$`metrics6`+1)
+pvalue_counts$ratio7<-(pvalue_counts$metrics0+1)/(pvalue_counts$`metrics7`+1)
+pvalue_counts$ratio8<-(pvalue_counts$metrics0+1)/(pvalue_counts$`metrics8`+1)
+pvalue_counts$ratio9<-(pvalue_counts$metrics0+1)/(pvalue_counts$`metrics9`+1)
+pvalue_counts$ratio10<-(pvalue_counts$metrics0+1)/(pvalue_counts$`metrics10`+1)
+
+pvalue <- pvalue_counts %>% select(pvalue_bin, model, expression_level, ratio1, ratio2, ratio3, ratio4,
+                                   ratio5, ratio6, ratio7, ratio8, ratio9, ratio10)
+pvalue <- melt(pvalue, id.vars = c("pvalue_bin", "model","expression_level"))
+colnames(pvalue) <- c("pvalue bin", "model","expression", "variable", "Num Real / Num Perm")
+pvalue$model[pvalue$model=="2"] <- "elastic net"
+pvalue$model[pvalue$model=="4"] <- "xgboost"
+
+pvalueElastic <- pvalue %>% filter(model == "elastic net")
+pvalueXgb <- pvalue %>% filter(model=="xgboost")
+
+pvalueElastic$expression <- factor(pvalueElastic$expression, levels = c("high", "medium", "low"))
+pvalueXgb$expression <- factor(pvalueXgb$expression, levels = c("high", "medium", "low"))
+
+p4 <- ggboxplot(pvalueElastic, x="pvalue bin", y="Num Real / Num Perm", color="expression") +
+  scale_y_continuous(trans='log10', limits=c(0.15, 1000), breaks=c(1,10,100,1000))+ 
+  geom_hline(yintercept = 1, lty=2, colour="grey")+ xlab("P value bin") +
+  annotation_logticks(sides="l")
+p5 <- ggboxplot(pvalueXgb, x="pvalue bin", y="Num Real / Num Perm", color="expression") +
+  scale_y_continuous(trans='log10', limits=c(0.15, 1000), breaks=c(1,10,100,1000))+ 
+  geom_hline(yintercept = 1, lty=2, colour="grey")+ xlab("P value bin") +
+  annotation_logticks(sides="l")
+
+pdf("./FalsePositiveGenes.pdf", width = 15, height = 6)
+ggarrange(p4,p5,ncol=2,labels=c("A","B"))
+dev.off()
