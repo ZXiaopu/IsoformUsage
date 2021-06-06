@@ -2,7 +2,7 @@
 ####################################### run edgeR ########################################
 library(tidyverse)
 library(edgeR)
-setwd("/exports/eddie/scratch/v1xzha12/05.edgeR")
+setwd("Isoform/05.edgeR")
 sample <- read.csv("./sampleTable", row.names = 1,head = TRUE, sep = "\t")
 Group <- factor(sample$condition)
 design <- model.matrix(~Group)
