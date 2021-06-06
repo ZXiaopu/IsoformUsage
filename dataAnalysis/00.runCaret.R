@@ -66,6 +66,16 @@ if(length(table(factor(data1$pop)))==1)
                                         rf = caretModelSpec(method = "ranger"),
                                         xgbmodel = caretModelSpec(method = "xgbTree",tuneGrid=xgbGrid, nthread=1)),
                         preProcess = c("nzv", "center", "scale"))
+    
+    ## variable importance
+    elastic <- varImp(models$elasticnet,scale=F)
+    imp <- elastic$importance
+    xgb <- varImp(models$xgbmodel,scale=F)
+    imp1 <- xgb$importance
+    write.table(imp, paste("./02.varImp_",path,"/",g,".elastic",sep=""), quote=F, col.names=T, row.names=T, sep="\t")
+    write.table(imp1, paste("./02.varImp_",path,"/",g,".xgb",sep=""), quote=F, col.names=T, row.names=T, sep="\t")
+      
+    ## prediction  
     models.preds <- lapply(models, predict, newdata = testing) #add type = "prob" for class probabilities
     models.preds <- data.frame(models.preds)
     
